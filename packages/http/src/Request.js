@@ -18,6 +18,7 @@ export default class Request {
             query: null,
             cookies: null,
             body: null,
+            bodyParsed: false,
             headers: null
         };
     }
@@ -115,11 +116,13 @@ export default class Request {
     // ---- Body (lazy, delegated to BodyParserManager) ----
 
     async body() {
-        if (this.#cache.body === null) {
+        if (!this.#cache.bodyParsed) {
             try {
                 this.#cache.body = await this.bodyParserManager.parse(this);
+                this.#cache.bodyParsed = true;
             } catch (error) {
-                this.#cache.body = null; // don't cache a failed attempt
+                this.#cache.body = null;
+                this.#cache.bodyParsed = false; // don't cache a failed attempt
                 throw error;
             }
         }

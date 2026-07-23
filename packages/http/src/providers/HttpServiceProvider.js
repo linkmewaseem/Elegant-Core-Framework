@@ -6,10 +6,11 @@ import MiddlewareRegistry from "../middleware/MiddlewareRegistry.js";
 import MiddlewareResolver from "../middleware/MiddlewareResolver.js";
 import HttpExceptionHandler from "../HttpExceptionHandler.js";
 import RouteNotFoundError from "../errors/RouteNotFoundError.js";
-
-const noopBodyParserManager = {
-    parse: async () => ({})
-};
+import BodyParserManager from "../BodyParserManager.js";
+import JsonBodyParser from "../parsers/JsonBodyParser.js";
+import FormBodyParser from "../parsers/FormBodyParser.js";
+import TextBodyParser from "../parsers/TextBodyParser.js";
+import RawBodyParser from "../parsers/RawBodyParser.js";
 
 export default class HttpServiceProvider extends ServiceProvider {
     register(app) {
@@ -32,11 +33,21 @@ export default class HttpServiceProvider extends ServiceProvider {
             return new HttpExceptionHandler(manager);
         });
 
+        app.singleton("body.parser", () => {
+            const manager = new BodyParserManager({ limit: "1mb" });
+            manager.register(new JsonBodyParser());
+            manager.register(new FormBodyParser());
+            manager.register(new TextBodyParser());
+            manager.register(new RawBodyParser());
+            return manager;
+        });
+
         app.singleton("http.kernel", () => {
             const router = app.make("router");
+            const bodyParserManager = app.make("body.parser");
             const resolver = app.make("middleware.resolver");
             const exceptionHandler = app.make("exception.handler");
-            return new HttpKernel(router, noopBodyParserManager, resolver, exceptionHandler);
+            return new HttpKernel(router, bodyParserManager, resolver, exceptionHandler);
         });
 
         app.singleton("http.server", () => {

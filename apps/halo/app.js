@@ -1,4 +1,4 @@
-import { Application, Facade, CoreServiceProvider,RouteNotFoundError, LoggerServiceProvider, HttpServiceProvider, Route, Middleware, Log, ExceptionManager } from "@ecf/http";
+import { Application, Facade, CoreServiceProvider, RouteNotFoundError, LoggerServiceProvider, HttpServiceProvider, Route, Middleware, Log, ExceptionManager } from "@ecf/http";
 
 const app = new Application();
 
@@ -79,6 +79,8 @@ Route.get("/about", (req, res) => {
 
 // Option B: Single inline middleware: firstMiddleware
 Route.get("/users/new", firstMiddleware, (req, res) => {
+    //display error form
+
     return res.html(`
     <h1>New User</h1>
     <form action="/user" method="post">
@@ -181,10 +183,20 @@ Route.get("/users/{id}", (req, res) => {
     `);
 });
 
-Route.post("/user", (req, res) => {
-    const data = req.body();
-    console.log(data);
-    return res.json(data);
+Route.post("/user", async (req, res) => {
+    const { name, email } = await req.body();
+    if (!name || !email) {
+        return res.text("Name and email are required", 422);
+    }
+    if (!email.includes("@")) {
+        return res.text("Email is invalid", 422);
+    }
+    const existingUser = users.find((user) => user.email === email);
+    if (existingUser) {
+        return res.text("Email already exists", 422);
+    }
+    users.push({ id: users.length + 1, name, email });
+    return res.redirect("/users");
 });
 
 // ---- Exception Test Routes ----

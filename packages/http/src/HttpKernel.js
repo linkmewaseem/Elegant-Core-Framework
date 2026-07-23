@@ -17,7 +17,7 @@ export default class HttpKernel {
 
     // ---- Public API ----
 
-    handle(rawRequest, rawResponse) {
+    async handle(rawRequest, rawResponse) {
         const request = new Request(rawRequest, this.bodyParserManager);
         const response = new Response(rawResponse);
 
@@ -26,7 +26,7 @@ export default class HttpKernel {
             const middleware = this.middlewareResolver.resolve(route);
             const pipeline = new Pipeline();
 
-            return pipeline
+            return await pipeline
                 .send(request, response)
                 .through(middleware)
                 .then((req, res) => route.handler(req, res));

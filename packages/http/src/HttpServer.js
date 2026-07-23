@@ -14,9 +14,9 @@ export default class HttpServer {
         this.kernel = kernel;
         this.#listening = false;
 
-       this.#server = http.createServer((req, res) => {
+       this.#server = http.createServer(async (req, res) => {
     try {
-        this.kernel.handle(req, res);
+        await this.kernel.handle(req, res);
     } catch (error) {
         this.handleUncaughtError(error, res);
     }
