@@ -3,7 +3,6 @@
 </div>
 
 <br>
-
  # ECF — Elegant Composable Framework
 
 ECF is a lightweight, modular Node.js framework built around a powerful dependency injection container and service provider system. It ships two packages today: **`@ecf/core`** for the application foundation and **`@ecf/http`** for HTTP routing, middleware, and request/response handling.
