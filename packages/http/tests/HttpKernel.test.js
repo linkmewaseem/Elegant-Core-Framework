@@ -141,13 +141,14 @@ function makeMiddlewareResolver(routerOrOptions, optionsArg) {
     return new MiddlewareResolver(router, registry);
 }
 
-function makeKernel({ router, bodyParserManager, middlewareResolver } = {}) {
+function makeKernel({ router, bodyParserManager, middlewareResolver, exceptionHandler } = {}) {
     const r = router ?? makeFakeRouter();
     const resolver = middlewareResolver ?? makeMiddlewareResolver(r);
     return new HttpKernel(
         r,
         bodyParserManager ?? makeFakeBodyParserManager(),
-        resolver
+        resolver,
+        exceptionHandler
     );
 }
 
@@ -602,6 +603,32 @@ describe("HttpKernel - error propagation", () => {
             () => kernel.handle(rawReq, rawRes),
             { message: "handler exploded" }
         );
+    });
+
+    test("errors thrown in async handler should reject returned promise and be caught by exceptionHandler", async () => {
+        class CustomError extends Error {}
+        let handledError = null;
+
+        const exceptionHandler = {
+            handle(err) {
+                handledError = err;
+                return "handled";
+            }
+        };
+
+        const router = makeFakeRouter();
+        router.addRoute("POST", "/user", async () => {
+            throw new CustomError("async validation failed");
+        });
+
+        const kernel = makeKernel({ router, exceptionHandler });
+        const rawReq = makeFakeIncomingMessage({ method: "POST", url: "/user" });
+        const { raw: rawRes } = makeFakeServerResponse();
+
+        const result = await kernel.handle(rawReq, rawRes);
+        assert.equal(result, "handled");
+        assert.ok(handledError instanceof CustomError);
+        assert.equal(handledError.message, "async validation failed");
     });
 
     test("RouteNotFoundError should carry method and path", () => {

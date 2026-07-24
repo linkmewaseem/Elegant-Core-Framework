@@ -17,7 +17,7 @@ export default class HttpKernel {
 
     // ---- Public API ----
 
-    async handle(rawRequest, rawResponse) {
+    handle(rawRequest, rawResponse) {
         const request = new Request(rawRequest, this.bodyParserManager);
         const response = new Response(rawResponse);
 
@@ -26,10 +26,21 @@ export default class HttpKernel {
             const middleware = this.middlewareResolver.resolve(route);
             const pipeline = new Pipeline();
 
-            return await pipeline
+            const result = pipeline
                 .send(request, response)
                 .through(middleware)
                 .then((req, res) => route.handler(req, res));
+
+            if (result && typeof result.then === "function") {
+                return result.catch((error) => {
+                    if (this.exceptionHandler) {
+                        return this.exceptionHandler.handle(error, request, response);
+                    }
+                    throw error;
+                });
+            }
+
+            return result;
         } catch (error) {
             if (this.exceptionHandler) {
                 return this.exceptionHandler.handle(error, request, response);
